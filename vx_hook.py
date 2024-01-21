@@ -102,7 +102,7 @@ class SetVXInfoHook(Hook):
 		times = time.time()
 		local_time = time.localtime(times)
 		ttt = time.strftime("%Y-%m-%d %H:%M:%S",local_time)
-		self._send_info(runner,title=exp_info,name="实验开始",content=f"start time:{ttt}")
+		self._send_info(runner,title=exp_info,name="exp start",content=f"start time:{ttt}")
 			
 
 	def after_train_epoch(self, runner):
@@ -122,7 +122,7 @@ class SetVXInfoHook(Hook):
 			ret = 0
 			# ret = requests.post("https://www.autodl.com/api/v1/wechat/message/push",
 			#					 json={
-			#						 "token": "682d37e465da",
+			#						 "token": "xxx",
 			#						 "title": exp_info,
 			#						 "name": f"epoch-{epoch+1}",
 			#						 "content": log_str
