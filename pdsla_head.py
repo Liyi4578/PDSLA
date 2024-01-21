@@ -82,6 +82,8 @@ class Prior(nn.Module):
             distance = single_level_points - gt_center
             sigma =  gt_hw * float(stride) / 4.0
             center_prior = torch.exp(-distance**2 / (2*sigma)).prod(dim=-1)
+            temp = torch.exp(-distance**2 / (2*sigma))
+            
 
             # center_prior_list.append(center_prior)
             lv_prior = center_prior * scale_prior[idx]
@@ -211,15 +213,18 @@ class PDSLAHead(AnchorFreeHead):
     
     def _loss_single(self, cls_score, objectness, reg_loss, gt_labels,
                              prior_weights, inside_gt_bbox_mask,img_meta,featmap_sizes=None):
+        '''
+        per img
+        '''
         num_gts = len(gt_labels)
         num_points = cls_score.shape[0]
         joint_conf = (cls_score * objectness)
-        #To more precisely estimate the consistency degree between cls and reg heads, we represent IoU score as an expentional function of the reg loss.
         p_cls = joint_conf[:, gt_labels]
 
         ious = (1-reg_loss).clamp(min=0.0) 
 
         pred_score =  ious**0.8 * p_cls**0.2
+        
         pred_score_max = pred_score.max(dim=0)[0]
         prior_weight = (1-pred_score_max).clamp(min=0.1)
         map2p = lambda prior,pred_score:  prior**prior_weight * pred_score**(1-prior_weight)  * torch.exp(5*pred_score)
@@ -228,18 +233,24 @@ class PDSLAHead(AnchorFreeHead):
         
         # this line is not so important....
         # (0.5 * exp(0.5*5)) / (exp(5)) = 0.041
+        
         p_pos[ious < ious.max(dim=0)[0] / 2.0] = 0.0
 
         norm_p_pos = p_pos/p_pos.max(dim=0)[0].clamp(min=EPS)
+        
+        
 
+        
         # from utils import draw_points_on_img,draw_heatmap_on_img
-        # # all_level_points = self.prior_generator.grid_priors(featmap_sizes, joint_conf.dtype,
-        # #                                    joint_conf.device)
+        # # # all_level_points = self.prior_generator.grid_priors(featmap_sizes, joint_conf.dtype,
+        # # #                                    joint_conf.device)
         # hm = norm_p_pos.max(dim=1)[0]
-        # # draw_points_on_img(hm,all_level_points,hws=featmap_sizes,img_path=img_meta['ori_filename'],name="scaled_pred_" + img_meta['ori_filename'])
-        # draw_heatmap_on_img(hm,hws=featmap_sizes,img_path=img_meta['ori_filename'],name="scaled_pred_" + img_meta['ori_filename'],origin_size=img_meta['img_shape'])
+        # # # draw_points_on_img(hm,all_level_points,hws=featmap_sizes,img_path=img_meta['ori_filename'],name="scaled_pred_" + img_meta['ori_filename'])
+        # draw_heatmap_on_img(hm,hws=featmap_sizes,img_path=img_meta['ori_filename'],
+        #          output_name="pdsla_la_" + img_meta['ori_filename'],origin_size=img_meta['img_shape'])
         # hm = prior_weights.max(dim=1)[0]
-        # draw_heatmap_on_img(hm,hws=featmap_sizes,img_path=img_meta['ori_filename'],name="scaled_prior_" + img_meta['ori_filename'],origin_size=img_meta['img_shape'])
+        # draw_heatmap_on_img(hm,hws=featmap_sizes,img_path=img_meta['ori_filename'],
+        #         output_name="scaled_prior_" + img_meta['ori_filename'],origin_size=img_meta['img_shape'])
 
         fun = lambda x: torch.sigmoid((x-0.5)*10)
         b1 = fun(torch.tensor(0.0))
@@ -482,7 +493,7 @@ def test():
     cfg.with_nms=True
     cfg.nms = dict(type='nms', iou_threshold=0.6)
 
-    img_metas = [{'filename': 'D:/Liyi/datasets/coco/coco2017/val2017/000000397133.jpg', 
+    img_metas = [{'filename': 'D:/Liyi/Datasets/coco_dataset/coco/val2017/000000397133.jpg', 
                 'ori_filename': '000000397133.jpg', 
                 'ori_shape': (427, 640, 3), 
                 'img_shape': (800, 1199, 3), 
@@ -490,7 +501,7 @@ def test():
                 'scale_factor': [1.8734375, 1.8735363, 1.8734375, 1.8735363], 
                 'flip': False, 'flip_direction': None, 
                 'img_norm_cfg': {'mean': [0., 0., 0.], 'std': [1., 1., 1.], 'to_rgb': False}},
-                {'filename': 'D:/Liyi/datasets/coco/coco2017/val2017/000000397133.jpg', 
+                {'filename': 'D:/Liyi/Datasets/coco_dataset/coco/val2017/000000397133.jpg', 
                 'ori_filename': '000000397133.jpg', 
                 'ori_shape': (427, 640, 3), 
                 'img_shape': (800, 1199, 3), 

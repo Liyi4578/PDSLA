@@ -1,4 +1,7 @@
 # -*- coding:utf-8 -*-
+'''
+used to send a message of train status to my weixin.
+'''
 from unittest import runner
 import requests
 import time

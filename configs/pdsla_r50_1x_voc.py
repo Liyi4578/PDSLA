@@ -74,4 +74,4 @@ runner = dict(
 
 
 # custom hooks
-custom_hooks = [dict(type='SetVXInfoHook',priority=89)] # 
+# custom_hooks = [dict(type='SetVXInfoHook',priority=89)] # 
